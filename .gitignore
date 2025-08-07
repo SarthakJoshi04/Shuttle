@@ -1,0 +1,50 @@
+# === Python (FastAPI) ===
+*.py[cod]
+__pycache__/
+*.pyo
+*.pyd
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# === Python Dependency/Lock Files ===
+Pipfile.lock
+poetry.lock
+
+# === Node (React + Vite) ===
+node_modules/
+package-lock.json
+npm-debug.log*
+
+# === Vite Build and Cache ===
+frontend/dist/
+frontend/dist-ssr/
+frontend/.vite/
+frontend/.local/
+
+# === Environment Files ===
+.env
+backend/.env
+frontend/.env
+
+# === Log Files ===
+logs/
+*.log
+
+# === OS-Specific ===
+.DS_Store
+Thumbs.db
+
+# === Editor/IDE-Specific ===
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# === Project-Specific ===
+frontend/build/
