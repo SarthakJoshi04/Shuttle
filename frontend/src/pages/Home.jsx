@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
-import './index.css'
 
-
-function Home() {
+export default function Home() {
     const [message, setMessage] = useState('')
 
     useEffect(() => {
@@ -20,5 +18,3 @@ function Home() {
     </div>
   );
 }
-
-export default Home;
