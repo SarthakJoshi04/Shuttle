@@ -2,6 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
+from typing import Generator
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -14,7 +15,13 @@ SQLALCHEMY_DATABASE_URL = (
 )
 
 # Create the SQLAlchemy engine instance for connecting to the MySQL database
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    pool_size=5,
+    max_overflow=10,
+    pool_timeout=30,
+    pool_pre_ping=True
+)
 
 # Create a configured "Session" class bound to the engine
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -22,7 +29,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # Base class for all the ORM models to inherit from
 Base = declarative_base()
 
-def get_db():
+def get_db() -> Generator:
     db = SessionLocal()
     try:
         yield db

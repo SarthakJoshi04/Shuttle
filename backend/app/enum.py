@@ -50,3 +50,6 @@ class MajorCities(enum.Enum):
     NEPALGUNJ = "Nepalgunj"
     DHANGADI = "Dhangadi"
     BHARATPUR = "Bharatpur"
+    LUMBINI = "Lumbini"
+    BARDIYA = "Bardiya"
+    GORKHA = "Gorkha"

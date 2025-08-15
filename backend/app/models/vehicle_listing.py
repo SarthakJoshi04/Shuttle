@@ -3,7 +3,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from backend.app.database import Base
 
-from backend.app.enum import ListingType
+from backend.app.enum import ListingType, MajorCities
 
 class VehicleListing(Base):
     __tablename__ = "vehicle_listings"
@@ -22,4 +22,5 @@ class VehicleListing(Base):
     description = Column(Text, nullable=True)
     listing_type = Column(Enum(ListingType), nullable=False)
     price = Column(Float, nullable=False)
+    location = Column(Enum(MajorCities), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
