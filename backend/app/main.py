@@ -6,6 +6,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from app.database import engine, Base, get_db
 from app.models.user import User
+from fastapi.staticfiles import StaticFiles
 from app.models import user, vehicle, vehicle_listing, reported_vehicle
 from app.routes import routes
 import os
@@ -49,6 +50,9 @@ app.add_middleware(
 
 # Include API routes from the routes module
 app.include_router(routes.router)
+
+# Serve static files from the "uploads" directory
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # Route to serve favicon
 @app.get("/favicon.ico", include_in_schema=False)

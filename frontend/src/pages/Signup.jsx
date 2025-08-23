@@ -127,7 +127,7 @@ export default function Signup() {
             <input
               type="tel"
               name="phoneNumber"
-              placeholder="e.g. +9779841321123"
+              placeholder="e.g. 9841321123"
               value={formData.phoneNumber}
               onChange={handleChange}
               required

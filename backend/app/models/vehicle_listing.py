@@ -19,6 +19,7 @@ class VehicleListing(Base):
     user = relationship("User", back_populates="vehicle_listings")
 
     title = Column(String(100), nullable=False)
+    image_url = Column(String(255), nullable=True)
     description = Column(Text, nullable=True)
     listing_type = Column(Enum(ListingType), nullable=False)
     price = Column(Float, nullable=False)

@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field
+from datetime import datetime
 
 from app.enum import VehicleType
 
@@ -12,6 +13,7 @@ class ReportedVehicleCreate(ReportedVehicleBase):
 class ReportedVehicleOut(ReportedVehicleBase):
     id: int
     reported_by: int
+    reported_at: datetime
 
     model_config = {
         "from_attributes": True

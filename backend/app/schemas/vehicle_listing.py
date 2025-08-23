@@ -14,6 +14,7 @@ class VehicleListingBase(BaseModel):
     
 class VehicleListingCreate(VehicleListingBase):
     vehicle_id: int
+    image_url: Optional[str] = Field(None, max_length=255, description="URL of the vehicle image")
     listed_by: int  # This corresponds to the User ID
     
 class VehicleListingUpdate(BaseModel):
@@ -21,6 +22,7 @@ class VehicleListingUpdate(BaseModel):
     description: Optional[str] = Field(None, max_length=1000)
     listing_type: Optional[ListingType] = None
     price: Optional[float] = Field(None, gt=0)
+    image_url: Optional[str] = None
 
 class VehicleListingFullCreate(BaseModel):
     # Vehicle details from VehicleCreate
@@ -34,6 +36,7 @@ class VehicleListingFullCreate(BaseModel):
 
     # Listing details from VehicleListingCreate
     title: str = Field(..., min_length=5, max_length=100)
+    image_url: Optional[str] = Field(None, max_length=255, description="URL of the vehicle image")
     description: Optional[str] = Field(None, max_length=1000)
     listing_type: ListingType
     price: float = Field(..., gt=0, description="Listing price must be greater than zero")
@@ -44,6 +47,7 @@ class VehicleListingOut(VehicleListingBase):
     vehicle_id: int
     listed_by: int
     created_at: datetime
+    image_url: Optional[str]
     vehicle: VehicleOut
 
     model_config = {

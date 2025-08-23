@@ -37,6 +37,8 @@ export default function ListVehicle() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [image, setImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
 
   // Fetch dropdown options
   useEffect(() => {
@@ -84,6 +86,34 @@ export default function ListVehicle() {
     setListingData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        setError("Invalid file type. Please upload a JPEG, PNG, GIF, or WebP image.");
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        setError("File too large. Please upload an image smaller than 5MB.");
+        return;
+      }
+
+      setImage(file);
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log("Form submitted, userId:", userId);
@@ -91,40 +121,60 @@ export default function ListVehicle() {
     setSuccess("");
 
     if (!userId) {
-        setError("You must be logged in to list a vehicle.");
-        return;
+      setError("You must be logged in to list a vehicle.");
+      return;
     }
 
-    // Combine vehicle + listing data (including location in the main payload)
-    const payload = {
-      ...vehicleData,
-      ...listingData,
-      price: parseFloat(listingData.price),
-    };
-
-    console.log("Payload:", payload);
-
-    // Validate all required fields
+    // Validate all required fields including image
     const requiredFields = [
       'vehicle_no', 'vehicle_type', 'engine_type', 'engine_battery_capacity',
       'body_type', 'company', 'model_name', 'title', 'listing_type', 'price', 'location'
     ];
     
-    const missingFields = requiredFields.filter(field => !payload[field] || payload[field] === "");
+    const missingFields = requiredFields.filter(field => {
+      const value = vehicleData[field] || listingData[field];
+      return !value || value === "";
+    });
     
     if (missingFields.length > 0) {
       setError(`Please fill in all required fields: ${missingFields.join(', ')}`);
       return;
     }
 
+    if (!image) {
+      setError("Please upload a vehicle image.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
+      // Create FormData for multipart upload
+      const formData = new FormData();
+      
+      // Add vehicle data
+      formData.append('vehicle_no', vehicleData.vehicle_no);
+      formData.append('vehicle_type', vehicleData.vehicle_type);
+      formData.append('engine_type', vehicleData.engine_type);
+      formData.append('engine_battery_capacity', vehicleData.engine_battery_capacity);
+      formData.append('body_type', vehicleData.body_type);
+      formData.append('company', vehicleData.company);
+      formData.append('model_name', vehicleData.model_name);
+      
+      // Add listing data
+      formData.append('title', listingData.title);
+      formData.append('description', listingData.description);
+      formData.append('listing_type', listingData.listing_type);
+      formData.append('price', listingData.price);
+      formData.append('location', listingData.location);
+      
+      // Add image file
+      formData.append('image', image);
+
       const res = await fetch(`http://localhost:8000/vehicles/list/?user_id=${encodeURIComponent(userId)}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(payload),
+        body: formData, // Don't set Content-Type header, let browser set it
       });
 
       const data = await res.json();
@@ -140,7 +190,7 @@ export default function ListVehicle() {
       } else {
         setSuccess("Vehicle listed successfully!");
 
-        // Reset form including location
+        // Reset form including image
         setVehicleData({
           vehicle_no: "",
           vehicle_type: "",
@@ -155,8 +205,16 @@ export default function ListVehicle() {
           description: "",
           listing_type: "",
           price: "",
-          location: "", // Reset location field
+          location: "",
         });
+        setImage(null);
+        setImagePreview(null);
+        
+        // Reset file input
+        const fileInput = document.querySelector('input[type="file"]');
+        if (fileInput) {
+          fileInput.value = '';
+        }
       }
     } catch (err) {
       console.error(err);
@@ -200,36 +258,62 @@ export default function ListVehicle() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Vehicle Number */}
+          {/* Listing Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Vehicle Number
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Listing Title</label>
             <input
               type="text"
-              name="vehicle_no"
-              placeholder="e.g. BA 1 PA 1234"
-              value={vehicleData.vehicle_no}
-              onChange={handleVehicleChange}
+              name="title"
+              placeholder="e.g. Honda Hornet 2.0 for Rent"
+              value={listingData.title}
+              onChange={handleListingChange}
               className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2"
               required
             />
           </div>
 
-          {/* Vehicle Type */}
+          {/* Vehicle Image */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Vehicle Type
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Upload Image</label>
+            <input
+              type="file"
+              name="image"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="mt-1 block w-full text-sm text-gray-500
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-lg file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-blue-50 file:text-blue-700
+                        hover:file:bg-blue-100"
+              required
+            />
+            <p className="mt-1 text-xs text-gray-500">Upload a clear photo of your vehicle (Max 5MB)</p>
+            
+            {/* Image Preview */}
+            {imagePreview && (
+              <div className="mt-3">
+                <img
+                  src={imagePreview}
+                  alt="Vehicle preview"
+                  className="max-w-xs max-h-48 rounded-lg border border-gray-300 object-cover"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Listing Type */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Listing Type</label>
             <select
-              name="vehicle_type"
-              value={vehicleData.vehicle_type}
-              onChange={handleVehicleChange}
+              name="listing_type"
+              value={listingData.listing_type}
+              onChange={handleListingChange}
               className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2"
               required
             >
-              <option value="">Select Vehicle Type</option>
-              {dropdowns.vehicleTypes.map((type) => (
+              <option value="">Select Listing Type</option>
+              {dropdowns.listingTypes.map((type) => (
                 <option key={type} value={type}>
                   {type}
                 </option>
@@ -237,60 +321,36 @@ export default function ListVehicle() {
             </select>
           </div>
 
-          {/* Engine Type */}
+          {/* Price */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Engine Type
-            </label>
-            <select
-              name="engine_type"
-              value={vehicleData.engine_type}
-              onChange={handleVehicleChange}
-              className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2"
-              required
-            >
-              <option value="">Select Engine Type</option>
-              {dropdowns.engineTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Engine/Battery Capacity */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Engine/Battery Capacity
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Price (NRs.)</label>
+            <p className="text-xs mt-1 text-gray-500">Enter the hourly rate for rentals or the total price for sales.</p>
             <input
-              type="text"
-              name="engine_battery_capacity"
-              placeholder="e.g. 200cc / 60.48 kWh"
-              value={vehicleData.engine_battery_capacity}
-              onChange={handleVehicleChange}
+              type="number"
+              name="price"
+              tooltip="Hourly for Rent, Total for Sale"
+              placeholder="e.g. 1500"
+              value={listingData.price}
+              onChange={handleListingChange}
               className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2"
               required
             />
           </div>
 
-          {/* Body Type */}
+          {/* Location */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Body Type
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Location</label>
             <select
-              name="body_type"
-              value={vehicleData.body_type}
-              onChange={handleVehicleChange}
+              name="location"
+              value={listingData.location}
+              onChange={handleListingChange}
               className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2"
               required
-              disabled={!bodyTypes.length}
             >
-              <option value="">Select Body Type</option>
-              {bodyTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type}
+              <option value="">Select City</option>
+              {dropdowns.cities.map((city) => (
+                <option key={city} value={city}>
+                  {city}
                 </option>
               ))}
             </select>
@@ -324,15 +384,89 @@ export default function ListVehicle() {
             />
           </div>
 
-          {/* Listing Title */}
+          {/* Vehicle Number */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Listing Title</label>
+            <label className="block text-sm font-medium text-gray-700">Vehicle Number</label>
             <input
               type="text"
-              name="title"
-              placeholder="e.g. Honda Hornet 2.0 for Rent"
-              value={listingData.title}
-              onChange={handleListingChange}
+              name="vehicle_no"
+              placeholder="e.g. BA 1 PA 1234"
+              value={vehicleData.vehicle_no}
+              onChange={handleVehicleChange}
+              className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2"
+              required
+            />
+          </div>
+
+          {/* Vehicle Type */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Vehicle Type</label>
+            <select
+              name="vehicle_type"
+              value={vehicleData.vehicle_type}
+              onChange={handleVehicleChange}
+              className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2"
+              required
+            >
+              <option value="">Select Vehicle Type</option>
+              {dropdowns.vehicleTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Body Type */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Body Type</label>
+            <select
+              name="body_type"
+              value={vehicleData.body_type}
+              onChange={handleVehicleChange}
+              className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2"
+              required
+              disabled={!bodyTypes.length}
+            >
+              <option value="">Select Body Type</option>
+              {bodyTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Engine Type */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Engine Type</label>
+            <select
+              name="engine_type"
+              value={vehicleData.engine_type}
+              onChange={handleVehicleChange}
+              className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2"
+              required
+            >
+              <option value="">Select Engine Type</option>
+              {dropdowns.engineTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Engine/Battery Capacity */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Engine/Battery Capacity
+            </label>
+            <input
+              type="text"
+              name="engine_battery_capacity"
+              placeholder="e.g. 200cc / 60.48 kWh"
+              value={vehicleData.engine_battery_capacity}
+              onChange={handleVehicleChange}
               className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2"
               required
             />
@@ -348,58 +482,6 @@ export default function ListVehicle() {
               onChange={handleListingChange}
               className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2"
             />
-          </div>
-
-          {/* Listing Type */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Listing Type</label>
-            <select
-              name="listing_type"
-              value={listingData.listing_type}
-              onChange={handleListingChange}
-              className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2"
-              required
-            >
-              <option value="">Select Listing Type</option>
-              {dropdowns.listingTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Price */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Price</label>
-            <input
-              type="number"
-              name="price"
-              placeholder="e.g. 1500"
-              value={listingData.price}
-              onChange={handleListingChange}
-              className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2"
-              required
-            />
-          </div>
-
-          {/* Location */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Location</label>
-            <select
-              name="location"
-              value={listingData.location}
-              onChange={handleListingChange}
-              className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2"
-              required
-            >
-              <option value="">Select City</option>
-              {dropdowns.cities.map((city) => (
-                <option key={city} value={city}>
-                  {city}
-                </option>
-              ))}
-            </select>
           </div>
 
           {/* Submit Button */}
