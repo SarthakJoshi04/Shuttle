@@ -1,9 +1,9 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Enum, Float, DateTime, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from backend.app.database import Base
+from app.database import Base
 
-from backend.app.enum import ListingType, MajorCities
+from app.enum import ListingType, MajorCities
 
 class VehicleListing(Base):
     __tablename__ = "vehicle_listings"
@@ -23,4 +23,4 @@ class VehicleListing(Base):
     listing_type = Column(Enum(ListingType), nullable=False)
     price = Column(Float, nullable=False)
     location = Column(Enum(MajorCities), nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

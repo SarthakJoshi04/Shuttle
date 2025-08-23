@@ -1,7 +1,6 @@
 from pydantic import BaseModel, Field
-from typing import Optional
 
-from backend.app.enum import VehicleType
+from app.enum import VehicleType
 
 class ReportedVehicleBase(BaseModel):
     vehicle_no: str = Field(..., max_length=20, description="License plate number of the vehicle")
@@ -14,5 +13,6 @@ class ReportedVehicleOut(ReportedVehicleBase):
     id: int
     reported_by: int
 
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }

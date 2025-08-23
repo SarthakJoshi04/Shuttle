@@ -1,8 +1,8 @@
 from sqlalchemy import Column, Integer, String, Enum
 from sqlalchemy.orm import relationship
-from backend.app.database import Base
+from app.database import Base
 
-from backend.app.enum import VehicleType, EngineType, BodyType
+from app.enum import VehicleType, EngineType, BodyType
 
 class Vehicle(Base):
     __tablename__ = "vehicles"
@@ -17,4 +17,4 @@ class Vehicle(Base):
     model_name = Column(String(50), nullable=False)
 
     # One-to-one relationship: vehicle -> listing
-    listing = relationship("VehicleListing", back_populates="vehicle", uselist=False)
+    listings = relationship("VehicleListing", back_populates="vehicle", uselist=False)

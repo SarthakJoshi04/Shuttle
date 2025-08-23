@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 
-from backend.app.enum import VehicleType, EngineType, BodyType
+from app.enum import VehicleType, EngineType, BodyType
 
 class VehicleBase(BaseModel):
     vehicle_no: str = Field(..., min_length=6, max_length=20, description="Unique vehicle registration number")
@@ -33,5 +33,6 @@ class VehicleOut(VehicleBase):
     company: str
     model_name: str
 
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }

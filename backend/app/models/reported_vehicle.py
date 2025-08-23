@@ -1,8 +1,8 @@
 from sqlalchemy import Column, Integer, String, Enum, ForeignKey
 from sqlalchemy.orm import relationship
-from backend.app.database import Base
+from app.database import Base
 
-from backend.app.enum import VehicleType
+from app.enum import VehicleType
 
 class ReportedVehicle(Base):
     __tablename__ = "reported_vehicles"
