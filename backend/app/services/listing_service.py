@@ -3,8 +3,6 @@ from app.models.vehicle import Vehicle
 from app.models.vehicle_listing import VehicleListing
 from app.models.reported_vehicle import ReportedVehicle
 from app.schemas.vehicle import VehicleCreate
-from app.schemas.vehicle_listing import VehicleListingCreate, VehicleListingOut
-from datetime import datetime
 
 from app.models.vehicle import Vehicle
 from app.schemas.vehicle_listing import VehicleListingFullCreate

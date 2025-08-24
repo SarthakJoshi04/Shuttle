@@ -1,13 +1,27 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 
-export default function Header({ title, subtitle }) {
-  const user = AuthContext._currentValue.user; // Access user from AuthContext
+export default function Header({ title, subtitle, onLocationChange }) {
+  const { user } = useContext(AuthContext); // Access user from AuthContext
   const [searchQuery, setSearchQuery] = useState("");
   const [locations, setLocations] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(user ? user.default_location : "Kathmandu");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (onLocationChange) {
+      onLocationChange(selectedLocation); // Notify parent initially
+    }
+  }, [selectedLocation, onLocationChange]);
+
+  const handleLocationChange = (e) => {
+    const newLocation = e.target.value;
+    setSelectedLocation(newLocation);
+    if (onLocationChange) {
+      onLocationChange(newLocation);
+    }
+  };
 
   // Fetch locations from backend API on component mount
   useEffect(() => {
@@ -42,9 +56,9 @@ export default function Header({ title, subtitle }) {
   };
 
   // Handle location selection change
-  const handleLocationChange = (e) => {
-    setSelectedLocation(e.target.value);
-  };
+  // const handleLocationChange = (e) => {
+  //   setSelectedLocation(e.target.value);
+  // };
 
   return (
     <>

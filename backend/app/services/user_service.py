@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
 from passlib.context import CryptContext
-from fastapi import Depends, HTTPException, Request
+from fastapi import Depends, HTTPException
 
 # Password hashing configuration
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -54,10 +54,3 @@ def login_user(phone_number: str, password: str, db: Session = Depends(get_db)) 
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Login failed: {str(e)}")
-    
-def get_current_user_id(request: Request) -> int:
-    """Get current user ID from session."""
-    user_id = request.session.get("user_id")
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Authentication required")
-    return int(user_id)

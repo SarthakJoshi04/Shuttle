@@ -1,11 +1,11 @@
-import { Routes, Route } from 'react-router-dom'
-import Home from '../pages/home'
-import Rentals from '../pages/Rentals'
-import Marketplace from '../pages/Marketplace'
-import ReportVehicle from '../pages/ReportVehicle'
-import Signup from '../pages/Signup' 
-import Login from '../pages/Login'
-import ListVehicle from '../pages/ListVehicle'
+import { Routes, Route } from 'react-router-dom';
+import Home from '../pages/home';
+import Rentals from '../pages/Rentals';
+import Marketplace from '../pages/Marketplace';
+import ReportVehicle from '../pages/ReportVehicle';
+import Signup from '../pages/Signup'; 
+import Login from '../pages/Login';
+import ListVehicle from '../pages/ListVehicle';
 
 export default function AppRoutes() {
   return (

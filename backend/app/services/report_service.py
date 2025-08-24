@@ -3,7 +3,6 @@ from app.models.reported_vehicle import ReportedVehicle
 from app.schemas.reported_vehicle import ReportedVehicleCreate
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
-from app.enum import VehicleType
 
 def report_vehicle(
     vehicle_data: ReportedVehicleCreate,

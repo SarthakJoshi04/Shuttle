@@ -1,10 +1,10 @@
-import AppRoutes from './routes/Routes'
-import Navbar from './components/Navbar'
-import Footer from './components/footer'
-import './App.css'
-import './index.css'
+import AppRoutes from './routes/Routes';
+import Navbar from './components/Navbar';
+import Footer from './components/footer';
+import './App.css';
+import './index.css';
 
-function App() {
+export default function App() {
   
   return (
     <div className="min-h-screen flex flex-col">
@@ -17,5 +17,3 @@ function App() {
     
   )
 }
-
-export default App

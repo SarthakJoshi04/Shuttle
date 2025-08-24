@@ -1,22 +1,23 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Request, Query, Form, File, UploadFile
-from fastapi.responses import JSONResponse
 from app.database import get_db
+from app.models.vehicle_listing import VehicleListing
 from app.models.user import User
+from app.models.vehicle import Vehicle
 from app.services.enum_service import (
     get_all_cities, get_all_engine_types, get_all_vehicle_types, get_bike_body_types, get_car_body_types, get_all_listing_types
 )
 from app.enum import VehicleType, EngineType, BodyType, ListingType
 from app.schemas.user import UserCreate, UserOut, UserLogin
 from app.services.user_service import register_user, login_user
-from app.schemas.vehicle import VehicleCreate
-from app.schemas.vehicle_listing import VehicleListingCreate, VehicleListingOut
 from app.services.listing_service import create_vehicle_listing, save_uploaded_file
 from app.enum import MajorCities
+from app.schemas.vehicle import VehicleOut
 from app.schemas.vehicle_listing import VehicleListingFullCreate
-from app.services.user_service import get_current_user_id
 from app.schemas.reported_vehicle import ReportedVehicleCreate
 from app.services.report_service import report_vehicle as report_vehicle_service
+from app.schemas.listing_feed import VehicleListingFeedOut, UserPublicOut
 
 router = APIRouter()
 
@@ -148,3 +149,66 @@ async def report_vehicle(
     )
     
     return report_vehicle_service(vehicle_data, user_id, db)
+
+@router.get("/vehicles/listings")
+def get_listings(
+    request: Request,
+    listing_type: str = Query(..., description="RENTAL or SALE"),
+    location: str = Query(..., description="City name, e.g., Kathmandu"),
+    db: Session = Depends(get_db),
+):
+    # Normalize input
+    listing_type_upper = listing_type.strip().upper()
+    location_formatted = location.strip().capitalize()
+
+    # Validate listing_type
+    if listing_type_upper not in ListingType.__members__:
+        raise HTTPException(status_code=400, detail=f"Invalid listing_type: {listing_type}")
+
+    # Validate location
+    if location_formatted not in [city.value for city in MajorCities]:
+        raise HTTPException(status_code=400, detail=f"Invalid location: {location}")
+
+    # Query listings
+    listings = (
+        db.query(VehicleListing)
+        .join(Vehicle)
+        .join(User)
+        .filter(
+            VehicleListing.listing_type == ListingType[listing_type_upper],
+            VehicleListing.location == MajorCities(location_formatted)
+        )
+        .all()
+    )
+
+    # Check if logged in via session
+    logged_in = "user_id" in request.session
+
+    results = []
+    for l in listings:
+        results.append({
+            "id": l.id,
+            "title": l.title,
+            "description": l.description,
+            "listing_type": l.listing_type.value,
+            "price": l.price,
+            "location": l.location.value,
+            "image_url": l.image_url,
+            "created_at": l.created_at,
+            "vehicle": {
+                "vehicle_no": l.vehicle.vehicle_no,
+                "vehicle_type": l.vehicle.vehicle_type.value,
+                "engine_type": l.vehicle.engine_type.value,
+                "engine_battery_capacity": l.vehicle.engine_battery_capacity,
+                "body_type": l.vehicle.body_type.value,
+                "company": l.vehicle.company,
+                "model_name": l.vehicle.model_name,
+            },
+            "user": {
+                "id": l.user.id,
+                "fullname": l.user.fullname,
+                "phone_number": l.user.phone_number if logged_in else None,
+            }
+        })
+
+    return results
