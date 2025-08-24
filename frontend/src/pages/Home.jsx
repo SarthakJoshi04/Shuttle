@@ -1,29 +1,46 @@
 import { useState } from "react";
 import { Search, Car, ShoppingBag, AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
+import ListingRow from "../components/ListingRow";
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [recommendations, setRecommendations] = useState([]);
+  const [loadingRecs, setLoadingRecs] = useState(false);
+  const [recError, setRecError] = useState("");
 
   const handleSearch = async (e) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
 
+    setLoadingRecs(true);
+    setRecError("");
+    setRecommendations([]);
     try {
-      const response = await fetch("/api/recommendations", {
+      const response = await fetch("http://localhost:8000/recommendations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: searchQuery }),
       });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || "Failed to fetch recommendations");
+      }
+
       const data = await response.json();
-      console.log("Recommendations:", data.recommendations);
+      setRecommendations(data);
     } catch (error) {
       console.error("Error fetching recommendations:", error);
+      setRecError("Could not fetch recommendations. Try again.");
+    } finally {
+      setLoadingRecs(false);
     }
   };
 
   return (
     <main className="flex min-h-screen flex-col items-center">
+      {/* Search Section */}
       <section className="w-full bg-gradient-to-r from-green-400 to-teal-500 py-20 px-4">
         <div className="max-w-6xl mx-auto text-center">
           <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
@@ -52,9 +69,26 @@ export default function Home() {
               Find
             </button>
           </form>
+
+          {/* Recommendations below search bar */}
+          <div className="mt-10 w-full px-4">
+            {loadingRecs && <p className="text-center py-4">Loading recommendations…</p>}
+            {recError && <p className="text-center text-red-600 py-4">{recError}</p>}
+            {!loadingRecs && !recError && recommendations.length === 0 && searchQuery.trim() !== "" && (
+              <p className="text-center py-4 text-gray-700">No matching vehicles found.</p>
+            )}
+            {!loadingRecs && recommendations.length > 0 && (
+              <div className="space-y-6">
+                {recommendations.map((listing) => (
+                  <ListingRow key={listing.id} listing={listing} />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
+      {/* Other Sections (Rentals, Marketplace, Report, How Shuttle Works) */}
       <section className="w-full max-w-6xl mx-auto py-16 px-4 grid grid-cols-1 md:grid-cols-3 gap-8">
         <Link to="/rentals" className="group">
           <div className="bg-white rounded-lg shadow-md p-8 text-center transition-all duration-300 hover:shadow-xl">
@@ -93,6 +127,7 @@ export default function Home() {
         </Link>
       </section>
 
+      {/* How Shuttle Works Section */}
       <section className="w-full bg-gray-50 py-16 px-4">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-12">How Shuttle Works</h2>
@@ -102,9 +137,7 @@ export default function Home() {
                 <span className="text-2xl font-bold text-green-600">1</span>
               </div>
               <h3 className="text-xl font-semibold mb-2">Create an Account</h3>
-              <p className="text-gray-600">
-                Sign up and join our trusted community
-              </p>
+              <p className="text-gray-600">Sign up and join our trusted community</p>
             </div>
 
             <div className="text-center">

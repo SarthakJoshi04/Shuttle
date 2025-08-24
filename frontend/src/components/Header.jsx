@@ -55,11 +55,6 @@ export default function Header({ title, subtitle, onLocationChange }) {
     setSearchQuery(e.target.value);
   };
 
-  // Handle location selection change
-  // const handleLocationChange = (e) => {
-  //   setSelectedLocation(e.target.value);
-  // };
-
   return (
     <>
       {/* Header */}

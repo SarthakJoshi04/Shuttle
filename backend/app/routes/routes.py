@@ -18,6 +18,8 @@ from app.schemas.vehicle_listing import VehicleListingFullCreate
 from app.schemas.reported_vehicle import ReportedVehicleCreate
 from app.services.report_service import report_vehicle as report_vehicle_service
 from app.schemas.listing_feed import VehicleListingFeedOut, UserPublicOut
+from app.schemas.ai_recommendation import RecommendationRequest
+from app.services.nlp_recommendation_service import nlp_service
 
 router = APIRouter()
 
@@ -208,6 +210,42 @@ def get_listings(
                 "id": l.user.id,
                 "fullname": l.user.fullname,
                 "phone_number": l.user.phone_number if logged_in else None,
+            }
+        })
+
+    return results
+
+@router.post("/recommendations", response_model=List[VehicleListingFeedOut])
+async def get_recommendations(request: Request, db: Session = Depends(get_db)):
+    body = await request.json()
+    query: str = body.get("query", "").strip()
+
+    if not query:
+        return []
+
+    # Call the NLP service
+    rec_data = nlp_service.get_recommendations(db=db, query=query, limit=10)
+
+    logged_in: bool = "user_id" in request.session
+
+    results = []
+    for rec in rec_data["recommendations"]:
+        listing = rec["listing"]
+        # user info is already included
+        results.append({
+            "id": listing["id"],
+            "title": listing["title"],
+            "description": listing.get("description"),
+            "listing_type": listing["listing_type"],
+            "price": listing["price"],
+            "location": listing.get("location"),
+            "image_url": listing.get("image_url"),
+            "created_at": listing.get("created_at"),
+            "vehicle": listing.get("vehicle"),
+            "user": {
+                "id": listing["user"]["id"],
+                "fullname": listing["user"]["fullname"],
+                "phone_number": listing["user"]["phone_number"] if logged_in else None
             }
         })
 
