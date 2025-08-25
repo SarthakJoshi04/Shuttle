@@ -1,9 +1,9 @@
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
 import os
 from typing import Generator
 from dotenv import load_dotenv
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
 # Load environment variables from .env file
 load_dotenv()
@@ -23,13 +23,23 @@ engine = create_engine(
     pool_pre_ping=True
 )
 
-# Create a configured "Session" class bound to the engine
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
 # Base class for all the ORM models to inherit from
 Base = declarative_base()
 
+# Create a configured "Session" class bound to the engine
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
 def get_db() -> Generator:
+    """
+    Provide a transactional scope around a series of operations.
+
+    Yields:
+        Session: SQLAlchemy database session.
+
+    Ensures:
+        Session is properly closed after use.
+    """
     db = SessionLocal()
     try:
         yield db

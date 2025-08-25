@@ -3,6 +3,7 @@ import { AlertCircle, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
 export default function Signup() {
+  // Form state
   const [formData, setFormData] = useState({
     fullname: "",
     phoneNumber: "",
@@ -11,13 +12,17 @@ export default function Signup() {
     confirmPassword: "",
   });
 
+  // List of locations/cities for dropdown
   const [cities, setCities] = useState([]);
+
+  // UI state
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
   const navigate = useNavigate();
 
+  // Fetch available locations when component mounts
   useEffect(() => {
     fetch("http://localhost:8000/locations")
       .then((res) => res.json())
@@ -28,14 +33,19 @@ export default function Signup() {
       });
   }, []);
 
+  // Update form state on input change
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Check if passwords match
   const passwordsMatch =
-    formData.password && formData.confirmPassword && formData.password === formData.confirmPassword;
+    formData.password &&
+    formData.confirmPassword &&
+    formData.password === formData.confirmPassword;
 
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -69,7 +79,7 @@ export default function Signup() {
 
       setSuccess(data.message || "Registration successful");
 
-      // Reset form
+      // Reset form after successful registration
       setFormData({
         fullname: "",
         phoneNumber: "",
@@ -78,7 +88,13 @@ export default function Signup() {
         confirmPassword: "",
       });
 
-      navigate("/login", { state: { successMessage: data.message || "Account Registered. Login to continue." } });
+      // Navigate to login page with success message
+      navigate("/login", {
+        state: {
+          successMessage:
+            data.message || "Account Registered. Login to continue.",
+        },
+      });
     } catch (err) {
       console.error("Registration error:", err);
       setError("Something went wrong! Please try again.");
@@ -90,11 +106,15 @@ export default function Signup() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-gray-50 py-12 px-4">
       <div className="w-full max-w-md bg-white shadow-lg rounded-xl p-6">
-        <h2 className="text-2xl font-bold text-center mb-2">Signup to Shuttle</h2>
+        {/* Header */}
+        <h2 className="text-2xl font-bold text-center mb-2">
+          Signup to Shuttle
+        </h2>
         <p className="text-center text-gray-600 mb-6">
           Create your account by filling the information below
         </p>
 
+        {/* Error Message */}
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-start">
             <AlertCircle className="h-5 w-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" />
@@ -102,15 +122,20 @@ export default function Signup() {
           </div>
         )}
 
+        {/* Success Message */}
         {success && (
           <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md flex items-start">
             <p className="text-green-600 text-sm">{success}</p>
           </div>
         )}
 
+        {/* Signup Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Full Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Full Name</label>
+            <label className="block text-sm font-medium text-gray-700">
+              Full Name
+            </label>
             <input
               type="text"
               name="fullname"
@@ -122,8 +147,11 @@ export default function Signup() {
             />
           </div>
 
+          {/* Mobile Number */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Mobile Number</label>
+            <label className="block text-sm font-medium text-gray-700">
+              Mobile Number
+            </label>
             <input
               type="tel"
               name="phoneNumber"
@@ -135,8 +163,11 @@ export default function Signup() {
             />
           </div>
 
+          {/* Location */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Location</label>
+            <label className="block text-sm font-medium text-gray-700">
+              Location
+            </label>
             <select
               name="location"
               value={formData.location}
@@ -155,8 +186,11 @@ export default function Signup() {
             </select>
           </div>
 
+          {/* Password */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Password</label>
+            <label className="block text-sm font-medium text-gray-700">
+              Password
+            </label>
             <input
               type="password"
               name="password"
@@ -167,8 +201,11 @@ export default function Signup() {
             />
           </div>
 
+          {/* Confirm Password */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Confirm Password</label>
+            <label className="block text-sm font-medium text-gray-700">
+              Confirm Password
+            </label>
             <input
               type="password"
               name="confirmPassword"
@@ -177,11 +214,13 @@ export default function Signup() {
               required
               className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm p-2 border"
             />
+            {/* Password mismatch warning */}
             {!passwordsMatch && formData.confirmPassword && (
               <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
             )}
           </div>
 
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={!passwordsMatch || isLoading}
@@ -198,6 +237,7 @@ export default function Signup() {
           </button>
         </form>
 
+        {/* Login Link */}
         <div className="text-center text-sm text-gray-600 mt-6">
           Already have an account?{" "}
           <Link to="/login" className="text-teal-600 hover:text-teal-700 font-medium">

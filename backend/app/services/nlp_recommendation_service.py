@@ -1,32 +1,48 @@
-# app/services/nlp_recommendation_service.py
 import logging
 from typing import List, Optional
 from dataclasses import dataclass
 from sqlalchemy.orm import Session
 
+# Project-specific models and schemas
 from app.models.vehicle_listing import VehicleListing
 from app.models.vehicle import Vehicle
-from app.schemas.vehicle_listing import VehicleListingOut
-from app.enum import VehicleType, BodyType, EngineType
 from app.models.user import User
+from app.schemas.vehicle_listing import VehicleListingOut
+from app.enum import VehicleType, BodyType, EngineType, MajorCities
 
+# --------------------------
+# Logger configuration
+# --------------------------
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class ExtractedPreferences:
+    """
+    Stores extracted vehicle preferences from a user query.
+    """
     vehicle_type: Optional[VehicleType] = None
     body_types: Optional[List[BodyType]] = None
     engine_type: Optional[EngineType] = None
     purposes: Optional[List[str]] = None
     confidence_score: float = 0.0
 
+
 class NLPRecommendationService:
+    """
+    Service for extracting user preferences from queries and generating vehicle listing recommendations.
+    """
     def __init__(self):
-        # Build a simple keyword knowledge base
         self.vehicle_knowledge = self._build_knowledge_base()
 
-    def _build_knowledge_base(self):
+    def _build_knowledge_base(self) -> dict:
+        """
+        Build a simple keyword knowledge base for vehicles, body types, engines, and purposes.
+
+        Returns:
+            dict: Knowledge base mapping categories to keywords.
+        """
         return {
             "vehicle_types": {
                 VehicleType.CAR: {"keywords": ["car", "automobile", "sedan", "suv", "hatchback", "coupe", "crossover", "pickup", "van"]},
@@ -67,6 +83,15 @@ class NLPRecommendationService:
         }
 
     def extract_preferences(self, query: str) -> ExtractedPreferences:
+        """
+        Extract vehicle preferences from a user query string.
+
+        Args:
+            query (str): User input query.
+
+        Returns:
+            ExtractedPreferences: Structured preference data with confidence score.
+        """
         q = query.lower()
         preferences = ExtractedPreferences(confidence_score=70)
 
@@ -76,11 +101,10 @@ class NLPRecommendationService:
                 preferences.vehicle_type = vt
                 break
 
-        # Body type
-        body_types = []
-        for bt, data in self.vehicle_knowledge["body_types"].items():
-            if any(k in q for k in data["keywords"]):
-                body_types.append(bt)
+        # Body types
+        body_types = [
+            bt for bt, data in self.vehicle_knowledge["body_types"].items() if any(k in q for k in data["keywords"])
+        ]
         preferences.body_types = body_types if body_types else None
 
         # Engine type
@@ -89,16 +113,25 @@ class NLPRecommendationService:
                 preferences.engine_type = et
                 break
 
-        # Purpose
-        purposes = []
-        for purpose, data in self.vehicle_knowledge["purposes"].items():
-            if any(k in q for k in data["keywords"]):
-                purposes.append(purpose)
+        # Purposes
+        purposes = [
+            purpose for purpose, data in self.vehicle_knowledge["purposes"].items() if any(k in q for k in data["keywords"])
+        ]
         preferences.purposes = purposes if purposes else None
 
         return preferences
 
     def calculate_match_score(self, listing: VehicleListingOut, preferences: ExtractedPreferences) -> float:
+        """
+        Calculate a match score between a listing and extracted preferences.
+
+        Args:
+            listing (VehicleListingOut): Vehicle listing output schema.
+            preferences (ExtractedPreferences): User preferences.
+
+        Returns:
+            float: Match score (0-100).
+        """
         score = 0
         if preferences.vehicle_type and listing.vehicle.vehicle_type == preferences.vehicle_type:
             score += 30
@@ -108,10 +141,30 @@ class NLPRecommendationService:
             score += 15
         return min(score, 100)
 
-    def get_recommendations(self, db: Session, query: str, limit: int = 10):
+    def get_recommendations(self, db: Session, query: str, location: str = None, limit: int = 10) -> dict:
+        """
+        Generate a list of recommended vehicle listings based on a query and optional location.
+
+        Args:
+            db (Session): Database session.
+            query (str): User query.
+            location (str, optional): City filter. Defaults to None.
+            limit (int, optional): Max number of results. Defaults to 10.
+
+        Returns:
+            dict: Recommendations and query analysis.
+        """
         preferences = self.extract_preferences(query)
 
         db_query = db.query(VehicleListing).join(Vehicle).join(User)
+
+        if location:
+            try:
+                location_enum = MajorCities(location)
+                db_query = db_query.filter(VehicleListing.location == location_enum)
+            except ValueError:
+                logger.warning(f"Invalid location provided: {location}")
+
         listings = db_query.all()
 
         recs = []
@@ -120,7 +173,6 @@ class NLPRecommendationService:
             score = self.calculate_match_score(l_out, preferences)
             if score > 20:
                 listing_dict = l_out.model_dump()
-                # Add user info so frontend can access it
                 listing_dict["user"] = {
                     "id": l.user.id,
                     "fullname": l.user.fullname,
@@ -134,9 +186,10 @@ class NLPRecommendationService:
                 })
 
         recs.sort(key=lambda x: x["match_score"], reverse=True)
+
         return {
             "recommendations": recs[:limit],
-            "query_analysis": f"Processed '{query}'",
+            "query_analysis": f"Processed '{query}'" + (f" for location '{location}'" if location else ""),
             "extracted_preferences": {
                 "vehicle_type": preferences.vehicle_type.value if preferences.vehicle_type else None,
                 "body_types": [bt.value for bt in preferences.body_types] if preferences.body_types else None,
@@ -144,7 +197,10 @@ class NLPRecommendationService:
                 "purposes": preferences.purposes,
                 "confidence_score": preferences.confidence_score
             }
-    }
+        }
 
+
+# --------------------------
 # Global service instance
+# --------------------------
 nlp_service = NLPRecommendationService()

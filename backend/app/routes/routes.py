@@ -1,54 +1,74 @@
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Request, Query, Form, File, UploadFile
+
+# Database and models
 from app.database import get_db
 from app.models.vehicle_listing import VehicleListing
 from app.models.user import User
 from app.models.vehicle import Vehicle
+
+# Enum helpers and enums
 from app.services.enum_service import (
-    get_all_cities, get_all_engine_types, get_all_vehicle_types, get_bike_body_types, get_car_body_types, get_all_listing_types
+    get_all_cities, get_all_engine_types, get_all_vehicle_types, 
+    get_bike_body_types, get_car_body_types, get_all_listing_types
 )
-from app.enum import VehicleType, EngineType, BodyType, ListingType
+from app.enum import VehicleType, EngineType, BodyType, ListingType, MajorCities
+
+# Schemas
 from app.schemas.user import UserCreate, UserOut, UserLogin
-from app.services.user_service import register_user, login_user
-from app.services.listing_service import create_vehicle_listing, save_uploaded_file
-from app.enum import MajorCities
-from app.schemas.vehicle import VehicleOut
 from app.schemas.vehicle_listing import VehicleListingFullCreate
 from app.schemas.reported_vehicle import ReportedVehicleCreate
+from app.schemas.listing_feed import VehicleListingFeedOut
+
+# Services
+from app.services.user_service import register_user, login_user
+from app.services.listing_service import create_vehicle_listing, save_uploaded_file
 from app.services.report_service import report_vehicle as report_vehicle_service
-from app.schemas.listing_feed import VehicleListingFeedOut, UserPublicOut
-from app.schemas.ai_recommendation import RecommendationRequest
 from app.services.nlp_recommendation_service import nlp_service
+
 
 router = APIRouter()
 
+
+# ----------------------------- ENUM ENDPOINTS -----------------------------
+
 @router.get("/locations")
 def locations():
+    """Return all supported city locations."""
     return get_all_cities()
 
 @router.get("/vehicle-types")
 def vehicle_types():
+    """Return all supported vehicle types."""
     return get_all_vehicle_types()
 
 @router.get("/engine-types")
 def engine_types():
+    """Return all supported engine types."""
     return get_all_engine_types()
 
 @router.get("/car-body-types")
 def car_body_types():
+    """Return all supported car body types."""
     return get_car_body_types()
 
 @router.get("/bike-body-types")
 def bike_body_types():
+    """Return all supported bike body types."""
     return get_bike_body_types()
 
 @router.get("/listing-types")
 def listing_types():
+    """Return all supported listing types (e.g., RENTAL, SALE)."""
     return get_all_listing_types()
+
+
+# ----------------------------- AUTH ENDPOINTS -----------------------------
 
 @router.post("/register/", response_model=UserOut)
 async def register(user_data: UserCreate, db: Session = Depends(get_db)):
+    """Register a new user."""
     result = register_user(
         fullname=user_data.fullname,
         phone_number=user_data.phone_number,
@@ -56,12 +76,12 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
         default_location=user_data.default_location,
         db=db
     )
-    
     user = db.query(User).filter(User.id == result["user_id"]).first()
     return UserOut.model_validate(user)
 
 @router.post("/login/", response_model=UserOut)
 async def login(user_data: UserLogin, request: Request, db: Session = Depends(get_db)):
+    """Log in a user and set session data."""
     result = login_user(user_data.phone_number, user_data.password, db)
 
     request.session["user_id"] = result["user_id"]
@@ -73,12 +93,16 @@ async def login(user_data: UserLogin, request: Request, db: Session = Depends(ge
 
 @router.post("/logout/")
 async def logout(request: Request):
+    """Log out a user by clearing session data."""
     request.session.clear()
     return {"message": "Logged out successfully"}
 
+
+# ----------------------------- VEHICLE LISTINGS -----------------------------
+
 @router.post("/vehicles/list/", response_model=dict)
 async def create_listing(
-    user_id: int = Query(..., description="User ID from query parameter"),
+    user_id: int = Query(..., description="User ID of listing owner"),
     # Vehicle data
     vehicle_no: str = Form(...),
     vehicle_type: str = Form(...),
@@ -98,7 +122,6 @@ async def create_listing(
     db: Session = Depends(get_db)
 ):
     """Create a new vehicle listing with image upload."""
-    
     try:
         # Validate and convert enum values
         vehicle_type_enum = VehicleType(vehicle_type)
@@ -108,11 +131,11 @@ async def create_listing(
         location_enum = MajorCities(location)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=f"Invalid enum value: {str(e)}")
-    
+
     # Save uploaded image
     image_url = save_uploaded_file(image)
-    
-    # Create listing data object
+
+    # Prepare listing schema
     listing_data = VehicleListingFullCreate(
         vehicle_no=vehicle_no,
         vehicle_type=vehicle_type_enum,
@@ -128,9 +151,9 @@ async def create_listing(
         location=location_enum,
         image_url=image_url
     )
-    
-    result = create_vehicle_listing(listing_data, user_id, location_enum, db)
-    return result
+
+    return create_vehicle_listing(listing_data, user_id, location_enum, db)
+
 
 @router.post("/vehicles/report/", response_model=dict)
 async def report_vehicle(
@@ -139,18 +162,20 @@ async def report_vehicle(
     user_id: int = Query(...),
     db: Session = Depends(get_db)
 ):
+    """Report a suspicious or fraudulent vehicle."""
     try:
         vehicle_type_enum = VehicleType(vehicle_type)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid vehicle type")
-    
+
     vehicle_data = ReportedVehicleCreate(
         vehicle_no=vehicle_no,
         vehicle_type=vehicle_type_enum,
         reported_by=user_id
     )
-    
+
     return report_vehicle_service(vehicle_data, user_id, db)
+
 
 @router.get("/vehicles/listings")
 def get_listings(
@@ -159,19 +184,16 @@ def get_listings(
     location: str = Query(..., description="City name, e.g., Kathmandu"),
     db: Session = Depends(get_db),
 ):
-    # Normalize input
+    """Fetch listings filtered by type and location. Show phone only if logged in."""
     listing_type_upper = listing_type.strip().upper()
     location_formatted = location.strip().capitalize()
 
-    # Validate listing_type
+    # Validate enums
     if listing_type_upper not in ListingType.__members__:
         raise HTTPException(status_code=400, detail=f"Invalid listing_type: {listing_type}")
-
-    # Validate location
     if location_formatted not in [city.value for city in MajorCities]:
         raise HTTPException(status_code=400, detail=f"Invalid location: {location}")
 
-    # Query listings
     listings = (
         db.query(VehicleListing)
         .join(Vehicle)
@@ -183,7 +205,6 @@ def get_listings(
         .all()
     )
 
-    # Check if logged in via session
     logged_in = "user_id" in request.session
 
     results = []
@@ -212,26 +233,36 @@ def get_listings(
                 "phone_number": l.user.phone_number if logged_in else None,
             }
         })
-
     return results
 
+
+# ----------------------------- AI RECOMMENDATIONS -----------------------------
+
 @router.post("/recommendations", response_model=List[VehicleListingFeedOut])
-async def get_recommendations(request: Request, db: Session = Depends(get_db)):
+async def get_recommendations(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Get AI-powered vehicle recommendations from query & location."""
     body = await request.json()
     query: str = body.get("query", "").strip()
+    location: str = body.get("location", "").strip()
 
     if not query:
         return []
 
-    # Call the NLP service
-    rec_data = nlp_service.get_recommendations(db=db, query=query, limit=10)
+    rec_data = nlp_service.get_recommendations(
+        db=db,
+        query=query,
+        location=location if location else None,
+        limit=10
+    )
 
     logged_in: bool = "user_id" in request.session
 
     results = []
     for rec in rec_data["recommendations"]:
         listing = rec["listing"]
-        # user info is already included
         results.append({
             "id": listing["id"],
             "title": listing["title"],
@@ -248,5 +279,4 @@ async def get_recommendations(request: Request, db: Session = Depends(get_db)):
                 "phone_number": listing["user"]["phone_number"] if logged_in else None
             }
         })
-
     return results

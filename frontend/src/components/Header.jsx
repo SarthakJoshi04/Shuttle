@@ -1,20 +1,26 @@
 import { useState, useEffect, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 
+// ---------------------- Header Component ----------------------
 export default function Header({ title, subtitle, onLocationChange }) {
-  const { user } = useContext(AuthContext); // Access user from AuthContext
-  const [searchQuery, setSearchQuery] = useState("");
-  const [locations, setLocations] = useState([]);
-  const [selectedLocation, setSelectedLocation] = useState(user ? user.default_location : "Kathmandu");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  // ---------------------- Context & State ----------------------
+  const { user } = useContext(AuthContext); // Access logged-in user from AuthContext
+  const [searchQuery, setSearchQuery] = useState(""); // Search input state
+  const [locations, setLocations] = useState([]); // List of available locations
+  const [selectedLocation, setSelectedLocation] = useState(
+    user ? user.default_location : "Kathmandu"
+  ); // Currently selected location
+  const [isLoading, setIsLoading] = useState(false); // Loading state for locations
+  const [error, setError] = useState(""); // Error state for fetching locations
 
+  // ---------------------- Notify parent of location change ----------------------
   useEffect(() => {
     if (onLocationChange) {
-      onLocationChange(selectedLocation); // Notify parent initially
+      onLocationChange(selectedLocation);
     }
   }, [selectedLocation, onLocationChange]);
 
+  // ---------------------- Handle location selection ----------------------
   const handleLocationChange = (e) => {
     const newLocation = e.target.value;
     setSelectedLocation(newLocation);
@@ -23,14 +29,14 @@ export default function Header({ title, subtitle, onLocationChange }) {
     }
   };
 
-  // Fetch locations from backend API on component mount
+  // ---------------------- Fetch locations from backend API ----------------------
   useEffect(() => {
     const fetchLocations = async () => {
       setIsLoading(true);
       try {
         const response = await fetch("http://localhost:8000/locations", {
           method: "GET",
-          credentials: "include", // Include session cookie for authentication, if required
+          credentials: "include", // Include session cookie
         });
 
         if (!response.ok) {
@@ -38,7 +44,7 @@ export default function Header({ title, subtitle, onLocationChange }) {
         }
 
         const data = await response.json();
-        setLocations(data); // Expecting an array of city names
+        setLocations(data);
       } catch (err) {
         setError("Failed to load locations. Please try again.");
         console.error("Error fetching locations:", err);
@@ -50,14 +56,14 @@ export default function Header({ title, subtitle, onLocationChange }) {
     fetchLocations();
   }, []);
 
-  // Handle search input change
+  // ---------------------- Handle search input change ----------------------
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
   };
 
   return (
     <>
-      {/* Header */}
+      {/* ---------------------- Header Section ---------------------- */}
       <section className="bg-gradient-to-r from-green-400 to-teal-500 py-12 px-4">
         <div className="max-w-6xl mx-auto">
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">
@@ -67,9 +73,11 @@ export default function Header({ title, subtitle, onLocationChange }) {
         </div>
       </section>
 
-      {/* Filters and Search */}
+      {/* ---------------------- Filters and Search Section ---------------------- */}
       <section className="bg-white shadow-md py-6 px-4 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-4">
+
+          {/* Search Input */}
           <div className="flex-grow">
             <input
               type="text"
@@ -80,6 +88,7 @@ export default function Header({ title, subtitle, onLocationChange }) {
             />
           </div>
 
+          {/* Location Dropdown */}
           <div className="flex flex-wrap gap-2">
             <select
               value={selectedLocation}
@@ -89,13 +98,9 @@ export default function Header({ title, subtitle, onLocationChange }) {
             >
               <option value="" disabled>Select Location</option>
               {isLoading ? (
-                <option value="" disabled>
-                  Loading...
-                </option>
+                <option value="" disabled>Loading...</option>
               ) : error ? (
-                <option value="" disabled>
-                  Error loading locations
-                </option>
+                <option value="" disabled>Error loading locations</option>
               ) : (
                 locations.map((location) => (
                   <option key={location} value={location}>
@@ -105,6 +110,7 @@ export default function Header({ title, subtitle, onLocationChange }) {
               )}
             </select>
           </div>
+
         </div>
       </section>
     </>

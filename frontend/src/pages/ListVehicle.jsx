@@ -3,9 +3,11 @@ import { AlertCircle, Loader2 } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 
 export default function ListVehicle() {
+  // Get logged-in user from context
   const { user } = useContext(AuthContext);
   const userId = user?.id;
 
+  // State for vehicle-related fields
   const [vehicleData, setVehicleData] = useState({
     vehicle_no: "",
     vehicle_type: "",
@@ -16,6 +18,7 @@ export default function ListVehicle() {
     model_name: "",
   });
 
+  // State for listing-related fields
   const [listingData, setListingData] = useState({
     title: "",
     description: "",
@@ -24,6 +27,7 @@ export default function ListVehicle() {
     location: "",
   });
 
+  // Dropdown options for selects
   const [dropdowns, setDropdowns] = useState({
     cities: [],
     vehicleTypes: [],
@@ -40,7 +44,7 @@ export default function ListVehicle() {
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
 
-  // Fetch dropdown options
+  // Fetch dropdown options from backend
   useEffect(() => {
     const fetchDropdowns = async () => {
       try {
@@ -72,20 +76,24 @@ export default function ListVehicle() {
     fetchDropdowns();
   }, []);
 
+  // Update vehicle data state on input change
   const handleVehicleChange = (e) => {
     const { name, value } = e.target;
     setVehicleData((prev) => ({
       ...prev,
       [name]: value,
+      // Reset body_type if vehicle_type changes
       ...(name === "vehicle_type" ? { body_type: "" } : {}),
     }));
   };
 
+  // Update listing data state on input change
   const handleListingChange = (e) => {
     const { name, value } = e.target;
     setListingData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Handle image file selection
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -114,6 +122,7 @@ export default function ListVehicle() {
     }
   };
 
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log("Form submitted, userId:", userId);
@@ -125,7 +134,7 @@ export default function ListVehicle() {
       return;
     }
 
-    // Validate all required fields including image
+    // Validate all required fields
     const requiredFields = [
       'vehicle_no', 'vehicle_type', 'engine_type', 'engine_battery_capacity',
       'body_type', 'company', 'model_name', 'title', 'listing_type', 'price', 'location'
@@ -149,7 +158,7 @@ export default function ListVehicle() {
     setIsSubmitting(true);
 
     try {
-      // Create FormData for multipart upload
+      // Create FormData for multipart/form-data upload
       const formData = new FormData();
       
       // Add vehicle data
@@ -190,7 +199,7 @@ export default function ListVehicle() {
       } else {
         setSuccess("Vehicle listed successfully!");
 
-        // Reset form including image
+        // Reset form
         setVehicleData({
           vehicle_no: "",
           vehicle_type: "",
@@ -312,7 +321,7 @@ export default function ListVehicle() {
               className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2"
               required
             >
-              <option value="">Select Listing Type</option>
+              <option value="" disabled>Select Listing Type</option>
               {dropdowns.listingTypes.map((type) => (
                 <option key={type} value={type}>
                   {type}
@@ -347,7 +356,7 @@ export default function ListVehicle() {
               className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2"
               required
             >
-              <option value="">Select City</option>
+              <option value="" disabled>Select City</option>
               {dropdowns.cities.map((city) => (
                 <option key={city} value={city}>
                   {city}
@@ -408,7 +417,7 @@ export default function ListVehicle() {
               className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2"
               required
             >
-              <option value="">Select Vehicle Type</option>
+              <option value="" disabled>Select Vehicle Type</option>
               {dropdowns.vehicleTypes.map((type) => (
                 <option key={type} value={type}>
                   {type}
@@ -428,7 +437,7 @@ export default function ListVehicle() {
               required
               disabled={!bodyTypes.length}
             >
-              <option value="">Select Body Type</option>
+              <option value="" disabled>Select Body Type</option>
               {bodyTypes.map((type) => (
                 <option key={type} value={type}>
                   {type}
@@ -447,7 +456,7 @@ export default function ListVehicle() {
               className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2"
               required
             >
-              <option value="">Select Engine Type</option>
+              <option value="" disabled>Select Engine Type</option>
               {dropdowns.engineTypes.map((type) => (
                 <option key={type} value={type}>
                   {type}

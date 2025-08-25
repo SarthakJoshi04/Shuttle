@@ -3,16 +3,25 @@ import { AlertCircle } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 
 export default function ReportVehicle() {
-  const { user } = useContext(AuthContext);
+  const { user } = useContext(AuthContext); // Get logged-in user from context
+
+  // State for dropdown vehicle types
   const [vehicleTypes, setvehicleTypes] = useState([]);
+
+  // Form data state
   const [formData, setFormData] = useState({
     vehicleNo: "",
     vehicleType: "",
   });
+
+  // State for error/success messages
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  // State for submit button loading
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Fetch available vehicle types when component mounts
   useEffect(() => {
     fetch("http://localhost:8000/vehicle-types")
       .then((res) => res.json())
@@ -23,21 +32,25 @@ export default function ReportVehicle() {
       });
   }, []);
 
+  // Handle input/select changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess("");
 
+    // Validate fields
     if (!formData.vehicleNo || !formData.vehicleType) {
       setError("Please fill in all fields.");
       return;
     }
 
+    // Ensure user is logged in
     if (!user?.id) {
       setError("You must be logged in to report a vehicle.");
       return;
@@ -45,9 +58,8 @@ export default function ReportVehicle() {
 
     setIsSubmitting(true);
 
-     try {
+    try {
       const body = new FormData();
-
       body.append("vehicle_no", formData.vehicleNo);
       body.append("vehicle_type", formData.vehicleType);
 
@@ -59,6 +71,7 @@ export default function ReportVehicle() {
         }
       );
 
+      // If response not ok, throw error
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.detail || "Failed to report vehicle");
@@ -78,7 +91,7 @@ export default function ReportVehicle() {
 
   return (
     <main className="flex-grow">
-      {/* Header */}
+      {/* Header Section */}
       <section className="bg-gradient-to-r from-red-400 to-red-600 py-12 px-4">
         <div className="max-w-3xl mx-auto text-center">
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">
@@ -90,7 +103,7 @@ export default function ReportVehicle() {
         </div>
       </section>
 
-      {/* Report Form */}
+      {/* Report Form Section */}
       <section className="flex-grow bg-gray-50 py-12 px-4">
         <div className="max-w-3xl mx-auto">
           <div className="bg-white p-6 rounded-lg shadow-md">
@@ -99,6 +112,7 @@ export default function ReportVehicle() {
               Please provide as much detail as possible about the stolen vehicle
             </p>
 
+            {/* Error Message */}
             {error && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-start">
                 <AlertCircle className="h-5 w-5 text-red-500 mr-2 mt-0.5" />
@@ -106,6 +120,7 @@ export default function ReportVehicle() {
               </div>
             )}
 
+            {/* Success Message */}
             {success && (
               <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md text-center">
                 <p className="text-green-600 text-sm">{success}</p>
@@ -113,7 +128,7 @@ export default function ReportVehicle() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Vehicle No */}
+              {/* Vehicle No Input */}
               <div className="space-y-2">
                 <label
                   htmlFor="vehicleNo"
@@ -133,7 +148,7 @@ export default function ReportVehicle() {
                 />
               </div>
 
-              {/* Vehicle Type */}
+              {/* Vehicle Type Select */}
               <div className="space-y-2">
                 <label
                   htmlFor="vehicleType"
@@ -179,11 +194,13 @@ export default function ReportVehicle() {
               <li>Users will not be allowed to list the vehicle for rent or sale on Shuttle.</li>
             </ol>
           </div>
+
+          {/* Police Report Reminder */}
           <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-              <p className="text-yellow-800 text-sm">
-                <strong>Important:</strong> Please also file a police report for the stolen vehicle. This system is for preventing fraudulent listings only and doesn't replace official law enforcement procedures.
-              </p>
-            </div>
+            <p className="text-yellow-800 text-sm">
+              <strong>Important:</strong> Please also file a police report for the stolen vehicle. This system is for preventing fraudulent listings only and doesn't replace official law enforcement procedures.
+            </p>
+          </div>
         </div>
       </section>
     </main>
