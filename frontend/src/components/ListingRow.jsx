@@ -10,7 +10,7 @@ export default function ListingRow({ listing }) {
     // Determine unit display based on listing type
     const priceUnit =
         listing.listing_type === "Rental"
-            ? "per hour"
+            ? "per day"
             : listing.listing_type === "Sale"
             ? "total"
             : "";
